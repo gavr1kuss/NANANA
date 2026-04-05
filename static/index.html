@@ -2,129 +2,700 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🍌 Nano Banana Generator</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0f0f0f; color: #eee; font-family: system-ui; padding: 20px; }
-  .container { max-width: 1200px; margin: 0 auto; }
-  h1 { text-align: center; margin-bottom: 24px; color: #f5d000; font-size: 2rem; }
-  
-  .controls { background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-  textarea { width: 100%; background: #252525; border: 1px solid #333; color: #eee;
-    border-radius: 8px; padding: 12px; font-size: 16px; resize: vertical; min-height: 80px; }
-  
-  .row { display: flex; gap: 16px; margin-top: 16px; align-items: flex-end; flex-wrap: wrap; }
-  
+  :root {
+    --bg: #0a0a0a; --surface: #141414; --surface2: #1c1c1c; --border: #2a2a2a;
+    --text: #e8e8e8; --text2: #888; --accent: #f5d000; --accent2: #e6c400;
+    --danger: #ff4444; --radius: 10px;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: space-between; }
+  .sidebar-header h2 { font-size: 14px; color: var(--text2); text-transform: uppercase;
+    letter-spacing: 1px; }
+  .sidebar-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 18px; transition: all .15s; }
+  .sidebar-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .sidebar-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .sidebar-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 8px; transition: background .1s; position: relative; }
+  .sidebar-item:hover { background: var(--surface2); }
+  .sidebar-item.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+  .sidebar-item .name { flex: 1; font-size: 14px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; }
+  .sidebar-item .badge { background: var(--accent); color: #000; font-size: 10px; padding: 1px 6px;
+    border-radius: 10px; font-weight: 700; }
+  .sidebar-item .delete-ws { opacity: 0; background: none; border: none; color: var(--danger);
+    cursor: pointer; font-size: 14px; padding: 2px 4px; }
+  .sidebar-item:hover .delete-ws { opacity: 0.6; }
+  .sidebar-item .delete-ws:hover { opacity: 1; }
+
+  /* Tabs */
+  .sidebar-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .sidebar-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 13px;
+    color: var(--text2); border-bottom: 2px solid transparent; transition: all .15s; }
+  .sidebar-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .main-header { padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; gap: 12px; }
+  .main-header h1 { font-size: 20px; color: var(--accent); }
+  .workspace-name { font-size: 14px; color: var(--text2); }
+
+  .main-body { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* Controls */
+  .controls { background: var(--surface); border-radius: var(--radius); padding: 20px;
+    margin-bottom: 20px; border: 1px solid var(--border); }
+  .controls-section { margin-bottom: 16px; }
+  .controls-section:last-child { margin-bottom: 0; }
+  .section-label { font-size: 12px; color: var(--text2); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px; }
+
+  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 12px; font-size: 15px; resize: vertical; min-height: 70px;
+    font-family: inherit; transition: border-color .15s; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea::placeholder { color: #555; }
+
+  .controls-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
   .field { display: flex; flex-direction: column; gap: 6px; }
-  label { font-size: 13px; color: #aaa; }
-  
-  input[type="range"] { width: 160px; accent-color: #f5d000; }
-  .count-display { color: #f5d000; font-weight: bold; font-size: 18px; width: 24px; }
-  
-  .upload-area { border: 2px dashed #444; border-radius: 8px; padding: 16px;
-    text-align: center; cursor: pointer; transition: border-color .2s; min-width: 160px; }
-  .upload-area:hover { border-color: #f5d000; }
-  .upload-area img { max-height: 60px; max-width: 140px; border-radius: 4px; }
-  
-  button { background: #f5d000; color: #000; border: none; border-radius: 8px;
-    padding: 12px 32px; font-size: 16px; font-weight: bold; cursor: pointer;
-    transition: transform .1s; margin-left: auto; }
-  button:hover { transform: scale(1.03); }
-  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  .img-card { background: #1a1a1a; border-radius: 12px; overflow: hidden; position: relative; }
+  .field label { font-size: 12px; color: var(--text2); }
+
+  select { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 12px; font-size: 14px; font-family: inherit; cursor: pointer; }
+  select:focus { outline: none; border-color: var(--accent); }
+
+  input[type="range"] { width: 140px; accent-color: var(--accent); }
+  .count-val { color: var(--accent); font-weight: 700; font-size: 18px; min-width: 20px; }
+
+  /* Upload area */
+  .upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 12px;
+    text-align: center; cursor: pointer; transition: all .2s; min-height: 60px;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .upload-zone:hover { border-color: var(--accent); background: rgba(245,208,0,.03); }
+  .upload-zone.dragover { border-color: var(--accent); background: rgba(245,208,0,.06); }
+  .upload-thumb { position: relative; }
+  .upload-thumb img { height: 50px; border-radius: 4px; }
+  .upload-thumb .remove { position: absolute; top: -4px; right: -4px; background: var(--danger);
+    color: #fff; border: none; border-radius: 50%; width: 16px; height: 16px; font-size: 10px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .upload-placeholder { color: var(--text2); font-size: 13px; }
+
+  /* Workspace refs */
+  .ws-refs { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .ws-ref-thumb { position: relative; }
+  .ws-ref-thumb img { height: 40px; border-radius: 4px; border: 1px solid var(--border); }
+  .ws-ref-thumb .remove { position: absolute; top: -4px; right: -4px; background: var(--danger);
+    color: #fff; border: none; border-radius: 50%; width: 14px; height: 14px; font-size: 9px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  /* Buttons */
+  .btn { border: none; border-radius: 8px; padding: 10px 24px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .15s; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: #000; margin-left: auto; }
+  .btn-primary:hover { background: var(--accent2); transform: scale(1.02); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .img-card { background: var(--surface); border-radius: var(--radius); overflow: hidden;
+    position: relative; border: 1px solid var(--border); transition: border-color .15s; }
+  .img-card:hover { border-color: #444; }
   .img-card img { width: 100%; display: block; }
-  .img-card .dl { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.7);
-    color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
-  
-  .skeleton { background: linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%);
-    background-size: 200% 100%; animation: shimmer 1.5s infinite; height: 280px; border-radius: 12px; }
+  .img-card .actions { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px;
+    background: linear-gradient(transparent, rgba(0,0,0,.8)); display: flex; gap: 6px;
+    justify-content: flex-end; opacity: 0; transition: opacity .15s; }
+  .img-card:hover .actions { opacity: 1; }
+  .img-card .actions button { background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
+    color: #fff; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer;
+    font-size: 12px; }
+  .img-card .actions button:hover { background: rgba(255,255,255,.25); }
+
+  .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%; animation: shimmer 1.5s infinite; height: 260px;
+    border-radius: var(--radius); }
   @keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* History items */
+  .history-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px;
+    transition: background .1s; border: 1px solid transparent; }
+  .history-item:hover { background: var(--surface2); border-color: var(--border); }
+  .history-item .h-prompt { font-size: 13px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; margin-bottom: 4px; }
+  .history-item .h-meta { font-size: 11px; color: var(--text2); display: flex; gap: 8px; }
+  .history-item .h-actions { display: none; margin-top: 6px; }
+  .history-item:hover .h-actions { display: flex; gap: 6px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; width: 90%; max-width: 500px; }
+  .modal h3 { margin-bottom: 16px; }
+  .modal input[type="text"] { width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
+  .modal input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  .hidden { display: none !important; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { width: 240px; }
+    .main-body { padding: 16px; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🍌 Nano Banana Pro</h1>
-  
-  <div class="controls">
-    <textarea id="prompt" placeholder="Опиши изображение..."></textarea>
-    <div class="row">
-      <div class="field">
-        <label>Кол-во генераций</label>
-        <div style="display:flex;align-items:center;gap:10px">
-          <input type="range" id="count" min="1" max="6" value="4"
-            oninput="document.getElementById('countVal').textContent=this.value">
-          <span class="count-display" id="countVal">4</span>
-        </div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>🍌 Nano Banana</h2>
+    </div>
+
+    <div class="sidebar-tabs">
+      <div class="sidebar-tab active" data-tab="workspaces" onclick="switchTab('workspaces')">Пространства</div>
+      <div class="sidebar-tab" data-tab="history" onclick="switchTab('history')">История</div>
+    </div>
+
+    <!-- Workspaces tab -->
+    <div class="sidebar-list" id="workspacesPanel">
+      <div style="padding:8px 4px 4px">
+        <button class="btn btn-outline btn-sm" style="width:100%" onclick="createWorkspace()">+ Новое пространство</button>
       </div>
-      
-      <div class="field">
-        <label>Референс (опционально)</label>
-        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-          <span id="uploadText">📎 Загрузить фото</span>
-          <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewRef(this)">
-        </div>
-      </div>
-      
-      <button id="genBtn" onclick="generate()">⚡ Генерировать</button>
+      <div id="workspacesList"></div>
+    </div>
+
+    <!-- History tab -->
+    <div class="sidebar-list hidden" id="historyPanel">
+      <div id="historyList"></div>
     </div>
   </div>
-  
-  <div class="grid" id="grid"></div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="main-header">
+      <h1>⚡</h1>
+      <div>
+        <div style="font-weight:600" id="wsTitle">Генератор</div>
+        <div class="workspace-name" id="wsSubtitle">Общее пространство</div>
+      </div>
+    </div>
+
+    <div class="main-body">
+      <!-- Workspace instructions -->
+      <div class="controls" id="wsInstructionsBlock">
+        <div class="controls-section">
+          <div class="section-label">Инструкция пространства</div>
+          <textarea id="wsInstructions" rows="2" placeholder="Системные инструкции для всех генераций в этом пространстве... (напр. 'Все изображения в стиле киберпанк')"></textarea>
+        </div>
+        <div class="controls-section">
+          <div class="section-label">Постоянные референсы пространства</div>
+          <div class="upload-zone" id="wsRefZone" onclick="document.getElementById('wsRefInput').click()">
+            <input type="file" id="wsRefInput" accept="image/*" multiple style="display:none" onchange="addWsRefs(this.files)">
+            <span class="upload-placeholder" id="wsRefPlaceholder">📎 Добавить референсы пространства</span>
+          </div>
+          <div class="ws-refs" id="wsRefsList"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-outline btn-sm" onclick="saveCurrentWorkspace()">💾 Сохранить пространство</button>
+        </div>
+      </div>
+
+      <!-- Generation controls -->
+      <div class="controls">
+        <div class="controls-section">
+          <div class="section-label">Промпт</div>
+          <textarea id="prompt" placeholder="Опиши изображение..."></textarea>
+        </div>
+
+        <div class="controls-row">
+          <div class="field">
+            <label>Модель</label>
+            <select id="modelSelect"><option>Загрузка...</option></select>
+          </div>
+
+          <div class="field">
+            <label>Кол-во</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" id="count" min="1" max="6" value="4"
+                oninput="document.getElementById('countVal').textContent=this.value">
+              <span class="count-val" id="countVal">4</span>
+            </div>
+          </div>
+
+          <div class="field" style="flex:1;min-width:160px">
+            <label>Референсы (разовые)</label>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+              <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="addFiles(this.files)">
+              <span class="upload-placeholder" id="uploadPlaceholder">📎 Перетащи или кликни</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="genBtn" onclick="generate()">⚡ Генерировать</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="grid" id="grid">
+        <div class="empty-state">
+          <div class="icon">🍌</div>
+          <p>Введи промпт и нажми «Генерировать»</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Workspace create/edit modal -->
+<div class="modal-overlay hidden" id="wsModal">
+  <div class="modal">
+    <h3 id="wsModalTitle">Новое пространство</h3>
+    <input type="text" id="wsNameInput" placeholder="Название пространства...">
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeWsModal()">Отмена</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmWsModal()">Создать</button>
+    </div>
+  </div>
 </div>
 
 <script>
-let refFile = null;
+// === State ===
+let uploadedFiles = [];
+let workspaces = JSON.parse(localStorage.getItem('nb_workspaces') || '[]');
+let currentWsId = localStorage.getItem('nb_current_ws') || null;
+let wsRefsData = []; // {name, dataUrl, blob}
 
-function previewRef(input) {
-  refFile = input.files[0];
-  if (refFile) {
-    const url = URL.createObjectURL(refFile);
-    document.getElementById('uploadArea').innerHTML = `<img src="${url}"><br><small>✓ ${refFile.name}</small>`;
+// === Init ===
+document.addEventListener('DOMContentLoaded', () => {
+  loadModels();
+  renderWorkspaces();
+  if (currentWsId) selectWorkspace(currentWsId);
+  loadHistory();
+  setupDragDrop();
+});
+
+// === Models ===
+async function loadModels() {
+  const sel = document.getElementById('modelSelect');
+  try {
+    const res = await fetch('/models');
+    const data = await res.json();
+    sel.innerHTML = '';
+    const imageModels = data.models.filter(m =>
+      m.includes('imagen') || m.includes('image') || m.includes('gemini')
+    );
+    const models = imageModels.length ? imageModels : data.models;
+    models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m.replace('models/', '');
+      sel.appendChild(opt);
+    });
+    // try to select a good default
+    const preferred = ['gemini-2.0-flash-exp', 'gemini-2.0-flash', 'imagen'];
+    for (const pref of preferred) {
+      const found = models.find(m => m.includes(pref));
+      if (found) { sel.value = found; break; }
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="models/gemini-2.0-flash-exp">gemini-2.0-flash-exp</option>';
   }
 }
 
+// === Drag & Drop ===
+function setupDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  ['dragenter','dragover'].forEach(e => zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(e => zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.remove('dragover'); }));
+  zone.addEventListener('drop', ev => { addFiles(ev.dataTransfer.files); });
+
+  const wsZone = document.getElementById('wsRefZone');
+  ['dragenter','dragover'].forEach(e => wsZone.addEventListener(e, ev => { ev.preventDefault(); wsZone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(e => wsZone.addEventListener(e, ev => { ev.preventDefault(); wsZone.classList.remove('dragover'); }));
+  wsZone.addEventListener('drop', ev => { addWsRefs(ev.dataTransfer.files); });
+}
+
+// === File upload (per-generation) ===
+function addFiles(fileList) {
+  for (const f of fileList) {
+    if (f.type.startsWith('image/')) uploadedFiles.push(f);
+  }
+  renderUploadedFiles();
+}
+
+function removeFile(i) {
+  uploadedFiles.splice(i, 1);
+  renderUploadedFiles();
+}
+
+function renderUploadedFiles() {
+  const zone = document.getElementById('uploadZone');
+  const ph = document.getElementById('uploadPlaceholder');
+  // remove existing thumbs
+  zone.querySelectorAll('.upload-thumb').forEach(t => t.remove());
+  if (uploadedFiles.length === 0) {
+    ph.classList.remove('hidden');
+    return;
+  }
+  ph.classList.add('hidden');
+  uploadedFiles.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'upload-thumb';
+    const url = URL.createObjectURL(f);
+    div.innerHTML = `<img src="${url}"><button class="remove" onclick="event.stopPropagation();removeFile(${i})">✕</button>`;
+    zone.insertBefore(div, ph);
+  });
+}
+
+// === Workspace refs ===
+function addWsRefs(fileList) {
+  for (const f of fileList) {
+    if (!f.type.startsWith('image/')) continue;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      wsRefsData.push({ name: f.name, dataUrl: e.target.result });
+      renderWsRefs();
+    };
+    reader.readAsDataURL(f);
+  }
+}
+
+function removeWsRef(i) {
+  wsRefsData.splice(i, 1);
+  renderWsRefs();
+}
+
+function renderWsRefs() {
+  const container = document.getElementById('wsRefsList');
+  container.innerHTML = '';
+  wsRefsData.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'ws-ref-thumb';
+    div.innerHTML = `<img src="${r.dataUrl}" title="${r.name}"><button class="remove" onclick="removeWsRef(${i})">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+// === Workspaces ===
+function createWorkspace() {
+  document.getElementById('wsModal').classList.remove('hidden');
+  document.getElementById('wsNameInput').value = '';
+  document.getElementById('wsNameInput').focus();
+  document.getElementById('wsModalTitle').textContent = 'Новое пространство';
+}
+
+function closeWsModal() {
+  document.getElementById('wsModal').classList.add('hidden');
+}
+
+function confirmWsModal() {
+  const name = document.getElementById('wsNameInput').value.trim();
+  if (!name) return;
+  const ws = {
+    id: 'ws_' + Date.now(),
+    name,
+    instructions: '',
+    refs: [],
+    createdAt: Date.now()
+  };
+  workspaces.push(ws);
+  saveWorkspaces();
+  renderWorkspaces();
+  selectWorkspace(ws.id);
+  closeWsModal();
+}
+
+function saveWorkspaces() {
+  localStorage.setItem('nb_workspaces', JSON.stringify(workspaces));
+}
+
+function saveCurrentWorkspace() {
+  if (!currentWsId) return;
+  const ws = workspaces.find(w => w.id === currentWsId);
+  if (!ws) return;
+  ws.instructions = document.getElementById('wsInstructions').value;
+  ws.refs = wsRefsData.map(r => ({ name: r.name, dataUrl: r.dataUrl }));
+  saveWorkspaces();
+  renderWorkspaces();
+  showToast('Пространство сохранено');
+}
+
+function selectWorkspace(id) {
+  currentWsId = id;
+  localStorage.setItem('nb_current_ws', id);
+  const ws = workspaces.find(w => w.id === id);
+  if (ws) {
+    document.getElementById('wsTitle').textContent = ws.name;
+    document.getElementById('wsSubtitle').textContent = `Пространство • ${ws.refs ? ws.refs.length : 0} референсов`;
+    document.getElementById('wsInstructions').value = ws.instructions || '';
+    document.getElementById('wsInstructionsBlock').classList.remove('hidden');
+    wsRefsData = (ws.refs || []).map(r => ({ name: r.name, dataUrl: r.dataUrl }));
+    renderWsRefs();
+  }
+  renderWorkspaces();
+}
+
+function deleteWorkspace(id) {
+  if (!confirm('Удалить пространство?')) return;
+  workspaces = workspaces.filter(w => w.id !== id);
+  saveWorkspaces();
+  if (currentWsId === id) {
+    currentWsId = null;
+    localStorage.removeItem('nb_current_ws');
+    document.getElementById('wsTitle').textContent = 'Генератор';
+    document.getElementById('wsSubtitle').textContent = 'Общее пространство';
+    document.getElementById('wsInstructions').value = '';
+    document.getElementById('wsInstructionsBlock').classList.add('hidden');
+    wsRefsData = [];
+    renderWsRefs();
+  }
+  renderWorkspaces();
+}
+
+function renderWorkspaces() {
+  const list = document.getElementById('workspacesList');
+  list.innerHTML = '';
+  workspaces.forEach(ws => {
+    const div = document.createElement('div');
+    div.className = `sidebar-item${ws.id === currentWsId ? ' active' : ''}`;
+    div.onclick = () => selectWorkspace(ws.id);
+    const refCount = ws.refs ? ws.refs.length : 0;
+    div.innerHTML = `
+      <span class="name">${ws.name}</span>
+      ${refCount ? `<span class="badge">${refCount} реф</span>` : ''}
+      <button class="delete-ws" onclick="event.stopPropagation();deleteWorkspace('${ws.id}')">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// === Tab switching ===
+function switchTab(tab) {
+  document.querySelectorAll('.sidebar-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  document.getElementById('workspacesPanel').classList.toggle('hidden', tab !== 'workspaces');
+  document.getElementById('historyPanel').classList.toggle('hidden', tab !== 'history');
+  if (tab === 'history') loadHistory();
+}
+
+// === History ===
+async function loadHistory() {
+  try {
+    const res = await fetch('/history');
+    const data = await res.json();
+    renderHistory(data.entries);
+  } catch(e) {
+    console.error('History load error:', e);
+  }
+}
+
+function renderHistory(entries) {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if (!entries.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);font-size:13px">Пока пусто</div>';
+    return;
+  }
+  entries.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    const date = new Date(entry.saved_at * 1000);
+    const timeStr = date.toLocaleDateString('ru') + ' ' + date.toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+    div.innerHTML = `
+      <div class="h-prompt">${escHtml(entry.prompt)}</div>
+      <div class="h-meta">
+        <span>${entry.imageCount || '?'} фото</span>
+        <span>${timeStr}</span>
+      </div>
+      <div class="h-actions">
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();reuseHistory('${escAttr(entry.prompt)}')">♻ Промпт</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="event.stopPropagation();deleteHistoryItem('${entry.id}')">✕</button>
+      </div>
+    `;
+    div.onclick = () => showHistoryImages(entry);
+    list.appendChild(div);
+  });
+}
+
+function reuseHistory(prompt) {
+  document.getElementById('prompt').value = prompt;
+  switchTab('workspaces');
+}
+
+async function deleteHistoryItem(id) {
+  await fetch(`/history/${id}`, { method: 'DELETE' });
+  loadHistory();
+}
+
+function showHistoryImages(entry) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (!entry.images || !entry.images.length) {
+    grid.innerHTML = '<div class="empty-state"><p>Нет сохранённых изображений</p></div>';
+    return;
+  }
+  entry.images.forEach((b64, i) => {
+    const src = `data:image/png;base64,${b64}`;
+    const card = document.createElement('div');
+    card.className = 'img-card';
+    card.innerHTML = `<img src="${src}">
+      <div class="actions">
+        <button onclick="download('${i}', '${entry.id}')">⬇ Скачать</button>
+      </div>`;
+    card.querySelector('button').onclick = () => downloadB64(src, i + 1);
+    grid.appendChild(card);
+  });
+}
+
+// === Generation ===
 async function generate() {
   const prompt = document.getElementById('prompt').value.trim();
   const count = parseInt(document.getElementById('count').value);
+  const model = document.getElementById('modelSelect').value;
   if (!prompt) return alert('Введи промпт!');
-  
+
   const btn = document.getElementById('genBtn');
   btn.disabled = true; btn.textContent = '⏳ Генерирую...';
-  
-  // показываем скелетоны
+
   const grid = document.getElementById('grid');
   grid.innerHTML = Array(count).fill('<div class="skeleton"></div>').join('');
-  
+
+  // Build prompt with workspace instructions
+  let fullPrompt = prompt;
+  const ws = currentWsId ? workspaces.find(w => w.id === currentWsId) : null;
+  if (ws && ws.instructions) {
+    fullPrompt = ws.instructions + '\n\n' + prompt;
+  }
+
   const fd = new FormData();
-  fd.append('prompt', prompt);
+  fd.append('prompt', fullPrompt);
   fd.append('count', count);
-  if (refFile) fd.append('reference', refFile);
-  
+  fd.append('model', model);
+
+  // Add workspace refs
+  if (ws && ws.refs) {
+    for (const ref of ws.refs) {
+      const blob = dataUrlToBlob(ref.dataUrl);
+      fd.append('references', blob, ref.name);
+    }
+  }
+
+  // Add per-generation refs
+  for (const f of uploadedFiles) {
+    fd.append('references', f);
+  }
+
   try {
     const res = await fetch('/generate', { method: 'POST', body: fd });
     const data = await res.json();
-    
+
     grid.innerHTML = '';
-    data.images.forEach((b64, i) => {
-      const src = `data:image/png;base64,${b64}`;
-      const card = document.createElement('div');
-      card.className = 'img-card';
-      card.innerHTML = `<img src="${src}">
-        <button class="dl" onclick="download('${src}', ${i+1})">⬇ Скачать</button>`;
-      grid.appendChild(card);
-    });
+    if (!data.images.length) {
+      grid.innerHTML = '<div class="empty-state"><div class="icon">😔</div><p>Не удалось сгенерировать. Попробуй другой промпт или модель.</p></div>';
+    } else {
+      data.images.forEach((b64, i) => {
+        const src = `data:image/png;base64,${b64}`;
+        const card = document.createElement('div');
+        card.className = 'img-card';
+        card.innerHTML = `<img src="${src}">
+          <div class="actions">
+            <button class="dl-btn">⬇ Скачать</button>
+          </div>`;
+        card.querySelector('.dl-btn').onclick = () => downloadB64(src, i + 1);
+        grid.appendChild(card);
+      });
+    }
+
+    // Save to history
+    saveToHistory(prompt, model, data.images);
   } catch(e) {
-    grid.innerHTML = `<p style="color:red">Ошибка: ${e.message}</p>`;
+    grid.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>Ошибка: ${escHtml(e.message)}</p></div>`;
   }
-  
+
   btn.disabled = false; btn.textContent = '⚡ Генерировать';
+  uploadedFiles = [];
+  renderUploadedFiles();
 }
 
-function download(src, n) {
+async function saveToHistory(prompt, model, images) {
+  try {
+    await fetch('/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        model,
+        images: images.slice(0, 4), // limit storage
+        imageCount: images.length
+      })
+    });
+    loadHistory();
+  } catch(e) {
+    console.error('History save error:', e);
+  }
+}
+
+// === Utils ===
+function downloadB64(src, n) {
   const a = document.createElement('a');
-  a.href = src; a.download = `gen_${n}.png`; a.click();
+  a.href = src; a.download = `banana_${n}_${Date.now()}.png`; a.click();
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [header, b64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function escAttr(s) {
+  return s.replace(/'/g, "\\'").replace(/\n/g, '\\n');
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--accent);color:#000;padding:10px 20px;border-radius:8px;font-weight:600;font-size:14px;z-index:200;animation:fadeIn .2s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
 }
 </script>
 </body>
